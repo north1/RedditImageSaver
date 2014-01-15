@@ -8,8 +8,6 @@ from bs4 import BeautifulSoup
 
 r = praw.Reddit(user_agent = 'redSaver by /u/neph001')
 
-#test change - testing git from inside pycharm
-
 def downloadImage(imageUrl, localFileName):
     response = requests.get(imageUrl)
     if response.status_code == 200:
@@ -18,9 +16,18 @@ def downloadImage(imageUrl, localFileName):
             for chunk in response.iter_content(4096):
                 fo.write(chunk)
 
+try:
+    r.login()
+except praw.errors.APIException:
+    pass
 while r.is_logged_in() == False:
     os.system('cls' if os.name == 'nt' else 'clear')
-    r.login()
+    print "Invalid Username or password"
+    try:
+        r.login()
+    except praw.errors.APIException:
+        pass
+
 
 os.system('cls' if os.name == 'nt' else 'clear')
 
@@ -67,7 +74,6 @@ def save():
     links = r.user.get_saved(limit=None)
     count = 0
     for link in links:
-        #print str(link.subreddit) + " " + str(link.url)
         if rules.has_key(str(link.subreddit)):
             if str(link.url).endswith('.jpg') or str(link.url).endswith('.png') or str(link.url).endswith('.gif'):
                 saveGenericImage(link, rules)
