@@ -8,6 +8,8 @@ from bs4 import BeautifulSoup
 
 r = praw.Reddit(user_agent = 'redSaver by /u/neph001')
 
+#test change - testing git from inside pycharm
+
 def downloadImage(imageUrl, localFileName):
     response = requests.get(imageUrl)
     if response.status_code == 200:
