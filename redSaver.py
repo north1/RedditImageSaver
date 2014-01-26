@@ -6,7 +6,7 @@ import urllib
 import requests
 from bs4 import BeautifulSoup
 
-r = praw.Reddit(user_agent = 'redSaver by /u/neph001')
+
 
 def downloadImage(imageUrl, localFileName):
     response = requests.get(imageUrl)
@@ -15,21 +15,6 @@ def downloadImage(imageUrl, localFileName):
         with open(localFileName, 'wb') as fo:
             for chunk in response.iter_content(4096):
                 fo.write(chunk)
-
-try:
-    r.login()
-except praw.errors.APIException:
-    pass
-while r.is_logged_in() == False:
-    os.system('cls' if os.name == 'nt' else 'clear')
-    print "Invalid Username or password"
-    try:
-        r.login()
-    except praw.errors.APIException:
-        pass
-
-
-os.system('cls' if os.name == 'nt' else 'clear')
 
 def loadRules():
     try:
@@ -74,6 +59,7 @@ def save():
     links = r.user.get_saved(limit=None)
     count = 0
     for link in links:
+        c = count
         if rules.has_key(str(link.subreddit)):
             if str(link.url).endswith('.jpg') or str(link.url).endswith('.png') or str(link.url).endswith('.gif'):
                 saveGenericImage(link, rules)
@@ -82,6 +68,8 @@ def save():
                 count += saveImgurAlbum(link, rules)
             elif str(link.url).startswith("http://imgur.com/"):
                 count += saveImgurSingle(link, rules)
+        if count > c:
+            pass#link.unsave()
     print "Saved " + str(count) + " images."
     raw_input("Press Enter to continue...")
 
@@ -194,11 +182,30 @@ def menu():
         print 'Invalid choice'
 
 
+def main():
+    r = praw.Reddit(user_agent = 'RedditImageSaver by /u/neph001')
+
+    try:
+        r.login()
+    except praw.errors.APIException:
+        pass
+    while r.is_logged_in() == False:
+        os.system('cls' if os.name == 'nt' else 'clear')
+        print "Invalid Username or password"
+        try:
+            r.login()
+        except praw.errors.APIException:
+            pass
 
 
-while 1:
     os.system('cls' if os.name == 'nt' else 'clear')
-    menu()
+
+    while 1:
+        os.system('cls' if os.name == 'nt' else 'clear')
+        menu()
+
+if __name__ ==  '__main__':
+    main()
 
 
 
