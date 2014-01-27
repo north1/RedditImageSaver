@@ -71,6 +71,7 @@ class SignInDialog(wx.Dialog):
         signInButton.Bind(wx.EVT_BUTTON, self.signIn)
         cancelButton.Bind(wx.EVT_BUTTON, self.onClose)
 
+
     def signIn(self, e):
         try:
             self.r.login(username=self.usernameText.GetValue(), password=self.passwordText.GetValue())
@@ -97,32 +98,45 @@ class RedSaverWindow(wx.Frame):
         self.InitUI()
 
     def InitUI(self):
-        self.menubar = wx.MenuBar()
+        menubar = wx.MenuBar()
 
-        self.fileMenu = wx.Menu()
-        self.helpMenu = wx.Menu()
+        fileMenu = wx.Menu()
+        helpMenu = wx.Menu()
 
-        self.signInButton = wx.MenuItem(self.fileMenu, 101, 'Sign &In', 'Sign in to Reddit')
+        self.signInButton = wx.MenuItem(fileMenu, 101, 'Sign &In', 'Sign in to Reddit')
         self.Bind(wx.EVT_MENU, self.signIn, self.signInButton)
-        self.signOutButton = wx.MenuItem(self.fileMenu, 102, 'Sign &Out', 'Sign out of your Reddit Account')
+        self.signOutButton = wx.MenuItem(fileMenu, 102, 'Sign &Out', 'Sign out of your Reddit Account')
         self.signOutButton.Enable(False)
         self.Bind(wx.EVT_MENU, self.signOut, self.signOutButton)
-        self.quitButton = wx.MenuItem(self.fileMenu, wx.ID_EXIT, '&Quit', 'Exit Reddit Image Saver')
-        self.Bind(wx.EVT_MENU, self.onQuit, self.quitButton)
+        quitButton = wx.MenuItem(fileMenu, wx.ID_EXIT, '&Quit', 'Exit Reddit Image Saver')
+        self.Bind(wx.EVT_MENU, self.onQuit, quitButton)
 
-        self.fileMenu.AppendItem(self.signInButton)
-        self.fileMenu.AppendItem(self.signOutButton)
-        self.fileMenu.AppendSeparator()
-        self.fileMenu.AppendItem(self.quitButton)
+        fileMenu.AppendItem(self.signInButton)
+        fileMenu.AppendItem(self.signOutButton)
+        fileMenu.AppendSeparator()
+        fileMenu.AppendItem(quitButton)
 
-        self.helpMenu.Append(101, '&About')
+        helpMenu.Append(101, '&About')
 
-        self.menubar.Append(self.fileMenu, '&File')
-        self.menubar.Append(self.helpMenu, '&Help')
+        menubar.Append(fileMenu, '&File')
+        menubar.Append(helpMenu, '&Help')
 
 
-        self.SetMenuBar(self.menubar)
+        self.SetMenuBar(menubar)
         self.CreateStatusBar()
+
+        vbox = wx.BoxSizer(wx.VERTICAL)
+        panel = wx.Panel(self, -1)
+
+        self.loginStatusText = wx.StaticText(panel, label="Not logged in", style=wx.ALIGN_LEFT)
+        vbox.Add(self.loginStatusText, flag=wx.ALL, border=5)
+
+
+
+        panel.SetSizer(vbox)
+
+
+
 
 
     def onQuit(self, e):
@@ -133,18 +147,16 @@ class RedSaverWindow(wx.Frame):
         dialog.ShowModal()
         dialog.Destroy()
         if self.r.is_logged_in():
+            self.loginStatusText.SetLabelText("Logged in as /u/" + self.r.user.name + ".")
             self.signInButton.Enable(False)
             self.signOutButton.Enable(True)
 
     def signOut(self, e):
-        #What the flying fuck. praw doesn't have the ability to log out once logged in.
-        #self.signInButton.Enable(True)
-        #self.signOutButton.Enable(False)
-
-        wx.MessageBox('Sorry, praw ("Python Reddit API Wrapper") doesn\'t currently have a way to log out.\n'
-                      'As a result, if you want to sign out and into a different account, you will need to\n'
-                      'exit the application and launch it again. I am planning on modifying praw myself to\n'
-                      'fix this soon.', 'Sorry', wx.OK|wx.ICON_INFORMATION)
+        self.r.clear_authentication()
+        if not self.r.is_logged_in():
+            self.loginStatusText.SetLabelText("Logged out successfully.")
+            self.signInButton.Enable(True)
+            self.signOutButton.Enable(False)
 
 
 
