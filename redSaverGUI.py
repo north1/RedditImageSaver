@@ -28,8 +28,11 @@ If you like it, please consider donating BTC:
 
 
 import wx
+from wx.lib.mixins.listctrl import ListCtrlAutoWidthMixin
+from wx.lib.mixins.listctrl import ColumnSorterMixin
 import redSaver
 import praw
+import sys
 
 
 class SignInDialog(wx.Dialog):
@@ -88,14 +91,25 @@ class SignInDialog(wx.Dialog):
     def onClose(self, e):
         self.Destroy()
 
+class RuleListCtrl(wx.ListCtrl, ListCtrlAutoWidthMixin, ColumnSorterMixin):
+    def __init__(self, parent, rules={}):
+        wx.ListCtrl.__init__(self, parent, -1, style=wx.LC_REPORT)
+        ListCtrlAutoWidthMixin.__init__(self)
+        #ColumnSorterMixin.__init__(self, len(rules))
+        #self.itemDataMap = rules
+
+    def GetListCtrl(self):
+        return self
 
 class RedSaverWindow(wx.Frame):
 
     r = praw.Reddit(user_agent = 'RedditImageSaver by /u/neph001')
+    saver = redSaver.RedSaver()
 
     def __init__(self, *args, **kwargs):
         super(RedSaverWindow, self).__init__(*args, **kwargs)
         self.InitUI()
+        self.SetSize((500,600))
 
     def InitUI(self):
         menubar = wx.MenuBar()
@@ -116,7 +130,9 @@ class RedSaverWindow(wx.Frame):
         fileMenu.AppendSeparator()
         fileMenu.AppendItem(quitButton)
 
-        helpMenu.Append(101, '&About')
+        self.aboutButton = wx.MenuItem(helpMenu, 103, '&About')
+        #self.Bind(wx.EVT_MENU, self.onAbout, self.aboutButton)
+        helpMenu.Append(103, '&About')
 
         menubar.Append(fileMenu, '&File')
         menubar.Append(helpMenu, '&Help')
@@ -131,13 +147,67 @@ class RedSaverWindow(wx.Frame):
         self.loginStatusText = wx.StaticText(panel, label="Not logged in", style=wx.ALIGN_LEFT)
         vbox.Add(self.loginStatusText, flag=wx.ALL, border=5)
 
+        initRules = self.saver.loadRules()
+        self.ruleList = RuleListCtrl(panel, rules=initRules)
+        self.ruleList.InsertColumn(0, 'Subreddit', wx.LIST_FORMAT_LEFT, width=80)
+        self.ruleList.InsertColumn(1, 'Destination Path', wx.LIST_FORMAT_LEFT, 90)
+        for subreddit, dest in initRules.items():
+            index = self.ruleList.InsertStringItem(sys.maxint, subreddit)
+            self.ruleList.SetStringItem(index, 1, dest)
+            #self.ruleList.SetItemData(index, count)
+        vbox.Add(self.ruleList, flag=wx.EXPAND|wx.ALL, border=5)
 
+        self.removeButton = wx.Button(panel, label="Remove Selected")
+        self.removeButton.Bind(wx.EVT_BUTTON, self.onRemove)
+        self.removeButton.Enable(False)
+        self.ruleList.Bind(wx.EVT_LIST_ITEM_SELECTED, self.onRuleSelected)
+        vbox.Add(self.removeButton)
+
+        addRuleStaticBox = wx.StaticBox(panel, label="Add rule:")
+        addBoxSizer = wx.StaticBoxSizer(addRuleStaticBox, wx.HORIZONTAL)
+
+        self.subredditEntry = wx.TextCtrl(panel, value="Subreddit")
+        addBoxSizer.Add(self.subredditEntry, border=5)
+
+        self.destEntry = wx.TextCtrl(panel, value="Destination")
+        addBoxSizer.Add(self.destEntry, border=5)
+
+        destBrowse = wx.Button(panel, label="Browse...", style=wx.BU_EXACTFIT)
+        destBrowse.Bind(wx.EVT_BUTTON, self.onBrowse)
+        addBoxSizer.Add(destBrowse, border=5)
+
+        addRuleButton = wx.Button(panel, label="Add Rule", style=wx.BU_EXACTFIT)
+        addRuleButton.Bind(wx.EVT_BUTTON, self.onAdd)
+        addBoxSizer.Add(addRuleButton, flag=wx.RIGHT, border=5)
+
+        vbox.Add(addBoxSizer, flag=wx.EXPAND, border=5)
+
+        vbox.Add(wx.StaticLine(panel, size=(500,500)), flag=wx.EXPAND)
 
         panel.SetSizer(vbox)
 
+    def onRuleSelected(self, e):
+        self.removeButton.Enable(True)
 
+    def onRemove(self, e):
+        current = self.ruleList.GetFirstSelected()
+        for i in range(self.ruleList.GetSelectedItemCount()):
+            self.saver.deleteRule(gui=True, subreddit=self.ruleList.GetItemText(current))
+            next = self.ruleList.GetNextSelected(current)
+            self.ruleList.DeleteItem(current)
+            current = next
 
+    def onAdd(self, e):
+        self.saver.makeRule(gui=True, subreddit=self.subredditEntry.GetValue(), dir=self.destEntry.GetValue())
+        if (self.subredditEntry.GetValue() != "Subreddit" and self.destEntry.GetValue() != "Destination") and (self.subredditEntry.GetValue() != "" and self.destEntry.GetValue() != ""):
+            index = self.ruleList.InsertStringItem(sys.maxint, self.subredditEntry.GetValue())
+            self.ruleList.SetStringItem(index, 1, self.destEntry.GetValue())
 
+    def onBrowse(self, e):
+        dialog = wx.DirDialog(None, "Choose a folder:", style=wx.DD_DEFAULT_STYLE|wx.DD_NEW_DIR_BUTTON)
+        if dialog.ShowModal() == wx.ID_OK:
+            self.destEntry.SetValue(dialog.GetPath())
+        dialog.Destroy()
 
     def onQuit(self, e):
         self.Close()

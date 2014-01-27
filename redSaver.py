@@ -34,18 +34,30 @@ class RedSaver():
         for key, value in rules.items():
             writer.writerow([key, value])
 
-    def makeRule(self):
+    def makeRule(self, gui=False, subreddit="", dir=""):
         rules = self.loadRules()
-        subreddit = raw_input("Enter a subreddit name: ")
-        dir = raw_input("Enter an absolute path: ")
+        if not gui:
+            subreddit = raw_input("Enter a subreddit name: ")
+            dir = raw_input("Enter an absolute path: ")
+        elif subreddit=="" or dir=="":
+            return -1
+        elif subreddit=="Subreddit" or dir=="Destination":
+            return -1
         rules[subreddit] = dir
         self.saveRules(rules)
+        return 0
 
-    def deleteRule(self):
+    def deleteRule(self, gui=True, subreddit=""):
         rules = self.loadRules()
-        subreddit = raw_input("Enter the subreddit for the rule you wish to delete: ")
+        if not gui:
+            subreddit = raw_input("Enter the subreddit for the rule you wish to delete: ")
+        elif subreddit=="":
+            return -1
+        elif subreddit=="Subreddit":
+            return -1
         del(rules[subreddit])
         self.saveRules(rules)
+        return 0
 
 
     def listRules(self):
