@@ -47,7 +47,7 @@ class RedSaver():
         self.saveRules(rules)
         return 0
 
-    def deleteRule(self, gui=True, subreddit=""):
+    def deleteRule(self, gui=False, subreddit=""):
         rules = self.loadRules()
         if not gui:
             subreddit = raw_input("Enter the subreddit for the rule you wish to delete: ")
@@ -69,7 +69,7 @@ class RedSaver():
                 print subreddit + " : " + rules[subreddit]
         raw_input("Press Enter to continue...")
 
-    def save(self):
+    def save(self, gui=False, unsave=False):
         rules = self.loadRules()
         links = self.r.user.get_saved(limit=None)
         count = 0
@@ -77,25 +77,26 @@ class RedSaver():
             c = count
             if rules.has_key(str(link.subreddit)):
                 if str(link.url).endswith('.jpg') or str(link.url).endswith('.png') or str(link.url).endswith('.gif'):
-                    self.saveGenericImage(link, rules)
+                    self.saveGenericImage(link, rules, gui)
                     count+=1
                 elif str(link.url).startswith("http://imgur.com/a/"):
-                    count += self.saveImgurAlbum(link, rules)
+                    count += self.saveImgurAlbum(link, rules, gui)
                 elif str(link.url).startswith("http://imgur.com/"):
-                    count += self.saveImgurSingle(link, rules)
-            if count > c:
-                pass#link.unsave()
+                    count += self.saveImgurSingle(link, rules, gui)
+            if count > c and unsave:
+                link.unsave()
         print "Saved " + str(count) + " images."
-        raw_input("Press Enter to continue...")
+        if gui is False:
+            raw_input("Press Enter to continue...")
 
-    def saveGenericImage(self, link, rules):
+    def saveGenericImage(self, link, rules, gui):
         print "Saving " + str(link).decode('utf-8') + " to " + rules[str(link.subreddit)] + "/" + link.url.split('/')[-1]
         if not os.path.isdir(rules[str(link.subreddit)]):
             os.makedirs(rules[str(link.subreddit)])
             print "Directory did not exist, created it..."
         urllib.urlretrieve(link.url, rules[str(link.subreddit)] + "/" + link.url.split('/')[-1])
 
-    def saveImgurAlbum(self, submission, rules):
+    def saveImgurAlbum(self, submission, rules, gui):
         """
         This code comes directly from:
         http://inventwithpython.com/blog/2013/09/30/downloading-imgur-posts-linked-from-reddit-with-python/
@@ -133,12 +134,11 @@ class RedSaver():
                 localFileName = rules[str(submission.subreddit)] + "/" + imageFile
                 self.downloadImage('http:' + match['href'], localFileName)
                 count +=1
-                return count
             else:
                 print "Attempted to download null-string image filename. Weird issue. Skipping file."
                 print "Already attempting to force blog layout, not sure why this would still happen."
         return count
-    def saveImgurSingle(self, submission, rules):
+    def saveImgurSingle(self, submission, rules, gui):
         """
         This code comes directly from:
         http://inventwithpython.com/blog/2013/09/30/downloading-imgur-posts-linked-from-reddit-with-python/

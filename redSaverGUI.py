@@ -104,7 +104,7 @@ class RuleListCtrl(wx.ListCtrl, ListCtrlAutoWidthMixin, ColumnSorterMixin):
 class RedSaverWindow(wx.Frame):
 
     r = praw.Reddit(user_agent = 'RedditImageSaver by /u/neph001')
-    saver = redSaver.RedSaver()
+    saver = redSaver.RedSaver(r)
 
     def __init__(self, *args, **kwargs):
         super(RedSaverWindow, self).__init__(*args, **kwargs)
@@ -167,10 +167,10 @@ class RedSaverWindow(wx.Frame):
         addBoxSizer = wx.StaticBoxSizer(addRuleStaticBox, wx.HORIZONTAL)
 
         self.subredditEntry = wx.TextCtrl(panel, value="Subreddit")
-        addBoxSizer.Add(self.subredditEntry, border=5)
+        addBoxSizer.Add(self.subredditEntry, flag=wx.EXPAND, border=5)
 
         self.destEntry = wx.TextCtrl(panel, value="Destination")
-        addBoxSizer.Add(self.destEntry, border=5)
+        addBoxSizer.Add(self.destEntry,flag=wx.EXPAND, border=5)
 
         destBrowse = wx.Button(panel, label="Browse...", style=wx.BU_EXACTFIT)
         destBrowse.Bind(wx.EVT_BUTTON, self.onBrowse)
@@ -182,9 +182,22 @@ class RedSaverWindow(wx.Frame):
 
         vbox.Add(addBoxSizer, flag=wx.EXPAND, border=5)
 
-        vbox.Add(wx.StaticLine(panel, size=(500,500)), flag=wx.EXPAND)
+        downloadBoxSizer = wx.BoxSizer(wx.HORIZONTAL)
+        self.downloadButton = wx.Button(panel, label="Download Images", style=wx.BU_EXACTFIT)
+        self.downloadButton.Bind(wx.EVT_BUTTON, self.onDownload)
+        self.downloadButton.Enable(False)
+        downloadBoxSizer.Add(self.downloadButton, border=5)
+        self.unsaveCheck = wx.CheckBox(panel, label="Unsave downloaded submissions?")
+        self.unsaveCheck.SetValue(False)
+        downloadBoxSizer.Add(self.unsaveCheck, flag=wx.ALIGN_CENTER, border=5)
+
+        vbox.Add(downloadBoxSizer, flag=wx.EXPAND, border=5)
 
         panel.SetSizer(vbox)
+
+    def onDownload(self, e):
+        print self.saver.r.is_logged_in()
+        self.saver.save(gui=True, unsave=self.unsaveCheck.GetValue())
 
     def onRuleSelected(self, e):
         self.removeButton.Enable(True)
@@ -220,6 +233,7 @@ class RedSaverWindow(wx.Frame):
             self.loginStatusText.SetLabelText("Logged in as /u/" + self.r.user.name + ".")
             self.signInButton.Enable(False)
             self.signOutButton.Enable(True)
+            self.downloadButton.Enable(True)
 
     def signOut(self, e):
         self.r.clear_authentication()
@@ -227,6 +241,7 @@ class RedSaverWindow(wx.Frame):
             self.loginStatusText.SetLabelText("Logged out successfully.")
             self.signInButton.Enable(True)
             self.signOutButton.Enable(False)
+            self.downloadButton.Enable(False)
 
 
 
